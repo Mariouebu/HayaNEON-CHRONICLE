@@ -1,1 +1,0 @@
-# HayaNEON-CHRONICLE
