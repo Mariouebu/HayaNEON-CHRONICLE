@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON CHRONICLE - ボタン確実対応版</title>
+    <title>NEON CHRONICLE - プレイヤー同期・移動改善版</title>
     <style>
         body {
             margin: 0;
@@ -26,7 +26,7 @@
             justify-content: center;
             color: #00ffff;
             z-index: 9999;
-            pointer-events: auto; /* タッチイベントを確実に受け付ける */
+            pointer-events: auto;
         }
         .screen-overlay h1 {
             font-size: 32px;
@@ -143,9 +143,11 @@
             cursor: pointer;
             z-index: 50;
             pointer-events: auto;
+            -webkit-tap-highlight-color: transparent;
         }
+        #btn-forward { left: 95px; bottom: 110px; background: rgba(0, 255, 255, 0.3); }
         #btn-left { left: 20px; }
-        #btn-right { left: 100px; }
+        #btn-right { left: 170px; }
         #btn-action { right: 30px; bottom: 40px; width: 90px; height: 90px; background: rgba(255, 0, 85, 0.3); border-color: #ff0055; color: #ff0055; font-weight: bold; }
 
         #admin-panel {
@@ -298,7 +300,7 @@
     <div id="game-ui">
         <div id="ui">
             <h2 id="display-name" style="margin:0 0 5px 0; color:#00ffff;">PLAYER</h2>
-            <p style="font-size: 12px;">移動: [W/A/S/D] 視点: [ドラッグ]</p>
+            <p style="font-size: 12px;">移動: [W/A/S/D] または画面下のボタン</p>
             <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin-top: 5px; width: auto;" onclick="openAdminPanel()">⚙ 管理画面を開く</button>
         </div>
 
@@ -311,6 +313,7 @@
 
         <div id="event-banner">⚠️ 警告: 魔王降臨！ ⚠️</div>
 
+        <div class="touch-btn" id="btn-forward">▲</div>
         <div class="touch-btn" id="btn-left">◀</div>
         <div class="touch-btn" id="btn-right">▶</div>
         <div class="touch-btn" id="btn-action">斬撃!</div>
@@ -633,13 +636,23 @@
                 });
                 window.addEventListener('mouseup', () => { isDragging = false; });
 
-                document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); keys.a = true; });
-                document.getElementById('btn-left').addEventListener('touchend', (e) => { e.preventDefault(); keys.a = false; });
-                document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); keys.d = true; });
-                document.getElementById('btn-right').addEventListener('touchend', (e) => { e.preventDefault(); keys.d = false; });
-                document.getElementById('btn-action').addEventListener('touchstart', (e) => { e.preventDefault(); triggerAttack(); });
+                const bindTouch = (id, keyName) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyName] = true; });
+                    el.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyName] = false; });
+                    el.addEventListener('mousedown', (e) => { e.preventDefault(); keys[keyName] = true; });
+                    el.addEventListener('mouseup', (e) => { e.preventDefault(); keys[keyName] = false; });
+                };
 
-                setInterval(updatePlayerStatusToFirebase, 5000);
+                bindTouch('btn-forward', 'w');
+                bindTouch('btn-left', 'a');
+                bindTouch('btn-right', 'd');
+
+                document.getElementById('btn-action').addEventListener('touchstart', (e) => { e.preventDefault(); triggerAttack(); });
+                document.getElementById('btn-action').addEventListener('mousedown', (e) => { e.preventDefault(); triggerAttack(); });
+
+                setInterval(updatePlayerStatusToFirebase, 3000);
 
                 animate();
             }
