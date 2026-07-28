@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEON CHRONICLE - プレイヤー情報同期版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON CHRONICLE - ボタン確実対応版</title>
     <style>
         body {
             margin: 0;
@@ -11,54 +11,59 @@
             background-color: #050510;
             font-family: 'Courier New', Courier, monospace;
             user-select: none;
+            -webkit-user-select: none;
         }
         .screen-overlay {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(5, 5, 16, 0.95);
+            background: rgba(5, 5, 16, 0.98);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             color: #00ffff;
-            z-index: 100;
+            z-index: 9999;
+            pointer-events: auto; /* タッチイベントを確実に受け付ける */
         }
         .screen-overlay h1 {
-            font-size: 36px;
+            font-size: 32px;
             text-shadow: 0 0 15px #00ffff;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            text-align: center;
         }
         .input-box {
             background: #111122;
             border: 2px solid #00ffff;
             color: #00ffff;
-            padding: 10px 15px;
-            font-size: 15px;
-            margin: 5px 0;
+            padding: 12px;
+            font-size: 16px;
+            margin: 8px 0;
             border-radius: 5px;
             outline: none;
-            width: 100%;
+            width: 260px;
             box-sizing: border-box;
-        }
-        select.input-box {
-            cursor: pointer;
+            pointer-events: auto;
         }
         .action-btn {
-            background: rgba(0, 255, 255, 0.2);
+            background: rgba(0, 255, 255, 0.25);
             border: 2px solid #00ffff;
             color: #00ffff;
-            padding: 12px 30px;
+            padding: 14px 28px;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             margin: 10px;
             border-radius: 5px;
-            transition: 0.2s;
+            width: 260px;
+            text-align: center;
+            pointer-events: auto;
+            z-index: 10000;
+            -webkit-tap-highlight-color: transparent;
         }
-        .action-btn:hover {
+        .action-btn:hover, .action-btn:active {
             background: #00ffff;
             color: #050510;
             box-shadow: 0 0 15px #00ffff;
@@ -66,9 +71,9 @@
         .admin-btn {
             border-color: #ff0055;
             color: #ff0055;
-            background: rgba(255, 0, 85, 0.2);
+            background: rgba(255, 0, 85, 0.25);
         }
-        .admin-btn:hover {
+        .admin-btn:hover, .admin-btn:active {
             background: #ff0055;
             color: #fff;
             box-shadow: 0 0 15px #ff0055;
@@ -82,6 +87,9 @@
             color: #00ffff;
             text-shadow: 0 0 10px #00ffff;
             pointer-events: none;
+        }
+        #ui button {
+            pointer-events: auto;
         }
         #score-board {
             position: absolute;
@@ -110,13 +118,14 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: #ff0055;
-            font-size: 26px;
+            font-size: 24px;
             font-weight: bold;
             text-shadow: 0 0 20px #ff0055;
             display: none;
             text-align: center;
             z-index: 20;
             pointer-events: none;
+            width: 100%;
         }
         .touch-btn {
             position: absolute;
@@ -132,48 +141,51 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 10;
+            z-index: 50;
+            pointer-events: auto;
         }
         #btn-left { left: 20px; }
         #btn-right { left: 100px; }
         #btn-action { right: 30px; bottom: 40px; width: 90px; height: 90px; background: rgba(255, 0, 85, 0.3); border-color: #ff0055; color: #ff0055; font-weight: bold; }
 
         #admin-panel {
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(10, 10, 30, 0.98);
             border: 2px solid #ff0055;
-            padding: 25px;
+            padding: 20px;
             border-radius: 10px;
-            width: 560px;
+            width: 90%;
+            max-width: 520px;
             color: #fff;
             display: none;
-            z-index: 50;
+            z-index: 10005;
             max-height: 90vh;
             overflow-y: auto;
+            pointer-events: auto;
         }
-        #admin-panel h2 { color: #ff0055; margin-top: 0; text-shadow: 0 0 10px #ff0055; font-size: 22px; }
+        #admin-panel h2 { color: #ff0055; margin-top: 0; text-shadow: 0 0 10px #ff0055; font-size: 20px; }
         .admin-section {
             background: rgba(20, 20, 45, 0.8);
             border: 1px solid #00ffff;
-            padding: 12px;
-            margin: 10px 0;
+            padding: 10px;
+            margin: 8px 0;
             border-radius: 6px;
         }
-        .admin-section h3 { margin: 0 0 8px 0; font-size: 14px; color: #00ffff; }
-        .admin-row { margin: 8px 0; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .admin-section h3 { margin: 0 0 6px 0; font-size: 13px; color: #00ffff; }
+        .admin-row { margin: 6px 0; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
         
         .player-list-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 12px;
             margin-top: 5px;
         }
         .player-list-table th, .player-list-table td {
             border: 1px solid #00ffff55;
-            padding: 6px 8px;
+            padding: 5px;
             text-align: left;
         }
         .player-list-table th {
@@ -182,17 +194,18 @@
         }
 
         #gameover-screen, #clear-screen {
-            position: absolute;
+            position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(40, 0, 10, 0.9);
+            background: rgba(40, 0, 10, 0.95);
             display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             color: #ff0055;
-            z-index: 200;
+            z-index: 10006;
+            pointer-events: auto;
         }
-        #clear-screen { background: rgba(0, 20, 40, 0.9); color: #00ffff; }
+        #clear-screen { background: rgba(0, 20, 40, 0.95); color: #00ffff; }
     </style>
 </head>
 <body>
@@ -200,14 +213,14 @@
     <!-- ログイン画面 -->
     <div id="login-screen" class="screen-overlay">
         <h1>NEON CHRONICLE</h1>
-        <p>サイバー近未来 3DサバイバルRPG (プレイヤー情報同期版)</p>
-        <input type="text" id="player-name-input" class="input-box" style="width: 250px; text-align: center;" placeholder="プレイヤー名" value="プレイヤー1">
-        <br>
+        <p style="font-size: 14px; margin-bottom: 20px;">サイバー近未来 3DサバイバルRPG</p>
+        <input type="text" id="player-name-input" class="input-box" placeholder="プレイヤー名" value="プレイヤー1">
         <button class="action-btn" onclick="startPlayerGame()">ゲームスタート</button>
-        <br><br>
-        <p style="font-size: 14px; color: #888;">管理者の方はこちら</p>
-        <input type="password" id="admin-pass-input" class="input-box" style="width: 250px; text-align: center;" placeholder="管理パスワード (Haya1012)">
-        <br>
+        
+        <div style="margin: 25px 0 10px 0; border-top: 1px dashed #444; width: 260px;"></div>
+        
+        <p style="font-size: 13px; color: #aaa; margin-bottom: 5px;">管理者の方はこちら</p>
+        <input type="password" id="admin-pass-input" class="input-box" placeholder="管理パスワード (Haya1012)">
         <button class="action-btn admin-btn" onclick="loginAdmin()">管理者画面へログイン</button>
     </div>
 
@@ -215,10 +228,9 @@
     <div id="admin-panel">
         <h2>⚡ ADMIN CONTROL PANEL</h2>
         
-        <!-- プレイヤー情報確認セクション -->
         <div class="admin-section">
             <h3>👥 接続中プレイヤー一覧</h3>
-            <div style="max-height: 140px; overflow-y: auto;">
+            <div style="max-height: 120px; overflow-y: auto;">
                 <table class="player-list-table">
                     <thead>
                         <tr>
@@ -238,42 +250,30 @@
             <h3>📅 イベントスケジュール設定</h3>
             <div class="admin-row" style="flex-direction: column; align-items: flex-start;">
                 <span>魔王出現日時:</span>
-                <input type="datetime-local" id="event-datetime-input" class="input-box" style="margin-top: 5px;" onchange="adminUpdateEventTime()">
+                <input type="datetime-local" id="event-datetime-input" class="input-box" style="width: 100%; margin-top: 5px;" onchange="adminUpdateEventTime()">
             </div>
         </div>
 
         <div class="admin-section">
-            <h3>🏗️ マップエディタ＆生成（全端末同期）</h3>
+            <h3>🏗️ マップエディタ＆生成</h3>
             <div class="admin-row">
-                <span>オブジェクトの種類:</span>
-                <select id="map-type-select" class="input-box" style="width: 220px;">
-                    <option value="tower">サイバータワー (高層ビル)</option>
-                    <option value="barrier">シールドバリア (低壁)</option>
-                    <option value="gate">ネオンゲート (アーチ)</option>
+                <span>オブジェクト:</span>
+                <select id="map-type-select" class="input-box" style="width: 180px; padding: 8px;">
+                    <option value="tower">サイバータワー</option>
+                    <option value="barrier">シールドバリア</option>
+                    <option value="gate">ネオンゲート</option>
                 </select>
             </div>
             <div class="admin-row">
-                <span>生成パターン:</span>
-                <select id="map-mode-select" class="input-box" style="width: 220px;">
-                    <option value="random">エリア全体にランダム配置</option>
-                    <option value="front">プレイヤーの正面に連続配置</option>
+                <span>パターン:</span>
+                <select id="map-mode-select" class="input-box" style="width: 180px; padding: 8px;">
+                    <option value="random">ランダム配置</option>
+                    <option value="front">正面に連続配置</option>
                 </select>
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="action-btn" style="flex: 1; padding: 10px; font-size: 14px; margin:0;" onclick="adminGenerateMap()">🛠️ マップ生成実行</button>
-                <button class="action-btn admin-btn" style="flex: 1; padding: 10px; font-size: 14px; margin:0;" onclick="adminClearMap()">🗑️ 全削除</button>
-            </div>
-        </div>
-
-        <div class="admin-section">
-            <h3>📊 サーバー情報</h3>
-            <div class="admin-row">
-                <span>現在のステージ:</span>
-                <span id="admin-stage-display" style="color: #00ffaa;">STAGE 1</span>
-            </div>
-            <div class="admin-row">
-                <span>同期オブジェクト数:</span>
-                <span id="admin-obstacle-count" style="color: #00ffff;">0個</span>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button class="action-btn" style="flex: 1; padding: 10px; font-size: 13px; margin:0; width:auto;" onclick="adminGenerateMap()">🛠️ 生成</button>
+                <button class="action-btn admin-btn" style="flex: 1; padding: 10px; font-size: 13px; margin:0; width:auto;" onclick="adminClearMap()">🗑️ 削除</button>
             </div>
         </div>
 
@@ -282,35 +282,34 @@
 
     <!-- ゲームオーバー画面 -->
     <div id="gameover-screen">
-        <h1 style="font-size: 50px; text-shadow: 0 0 20px #ff0055;">GAME OVER</h1>
-        <p style="color: #fff;">サイバー空間の戦いに敗れました...</p>
-        <button class="action-btn admin-btn" onclick="location.reload()">もう一度プレイする</button>
+        <h1 style="font-size: 40px; text-shadow: 0 0 20px #ff0055;">GAME OVER</h1>
+        <p style="color: #fff; margin-bottom: 20px;">サイバー空間の戦いに敗れました...</p>
+        <button class="action-btn admin-btn" style="width: auto;" onclick="location.reload()">もう一度プレイする</button>
     </div>
 
     <!-- ステージクリア画面 -->
     <div id="clear-screen">
-        <h1 id="clear-title" style="font-size: 45px; text-shadow: 0 0 20px #00ffff;">STAGE CLEAR!</h1>
-        <p id="clear-message" style="color: #fff; text-align: center; margin-bottom: 20px;">次のステージへ進みます...</p>
-        <button id="next-stage-btn" class="action-btn" onclick="proceedToNextStage()">次のステージへ進む ➔</button>
+        <h1 id="clear-title" style="font-size: 38px; text-shadow: 0 0 20px #00ffff;">STAGE CLEAR!</h1>
+        <p id="clear-message" style="color: #fff; text-align: center; margin-bottom: 20px; padding: 0 20px;">次のステージへ進みます...</p>
+        <button id="next-stage-btn" class="action-btn" style="width: auto;" onclick="proceedToNextStage()">次のステージへ進む ➔</button>
     </div>
 
     <!-- ゲーム画面UI -->
     <div id="game-ui">
         <div id="ui">
             <h2 id="display-name" style="margin:0 0 5px 0; color:#00ffff;">PLAYER</h2>
-            <p>移動: [W/A/S/D] 視点: [マウスドラッグでカメラ回転]</p>
-            <p>攻撃: [SPACE] または右下ボタン（剣で敵や魔王を斬る）</p>
-            <button class="action-btn" style="padding: 5px 10px; font-size: 12px; margin-top: 5px;" onclick="openAdminPanel()">⚙ 管理画面を開く</button>
+            <p style="font-size: 12px;">移動: [W/A/S/D] 視点: [ドラッグ]</p>
+            <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin-top: 5px; width: auto;" onclick="openAdminPanel()">⚙ 管理画面を開く</button>
         </div>
 
         <div id="score-board">
             <div id="hp-display">HP: 100</div>
             <div id="boss-hp-display" style="display:none; color: #ff0055;">魔王HP: 100 / 100</div>
-            <div id="timer-display">イベントまで: 計算中...</div>
+            <div id="timer-display" style="font-size: 14px;">イベントまで: 計算中...</div>
         </div>
         <div id="stage-indicator">STAGE 1</div>
 
-        <div id="event-banner">⚠️ 警告: 魔王降臨！接近してプラズマソードで斬り倒せ！ ⚠️</div>
+        <div id="event-banner">⚠️ 警告: 魔王降臨！ ⚠️</div>
 
         <div class="touch-btn" id="btn-left">◀</div>
         <div class="touch-btn" id="btn-right">▶</div>
@@ -363,8 +362,7 @@
         let gameStarted = false;
         let bossShootTimer = 0;
 
-        // プレイヤー固有ID（セッションごと）
-        const playerId = 'player_' + Math.random().toString(36.substring(2, 9));
+        const playerId = 'player_' + Math.random().toString(36).substring(2, 9);
         let playerName = "プレイヤー1";
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -391,7 +389,6 @@
                 syncObstacles(snapshot.val());
             });
 
-            // 接続中プレイヤー一覧の同期監視
             db.ref('game/players').on('value', (snapshot) => {
                 const playersData = snapshot.val();
                 const tbody = document.getElementById('admin-player-tbody');
@@ -415,7 +412,6 @@
             });
         }
 
-        // 自分のプレイヤーステータスをFirebaseに定期送信
         function updatePlayerStatusToFirebase() {
             if (!gameStarted) return;
             db.ref(`game/players/${playerId}`).set({
@@ -426,7 +422,6 @@
             });
         }
 
-        // ページを離れたらプレイヤー情報を削除
         window.addEventListener('beforeunload', () => {
             db.ref(`game/players/${playerId}`).remove();
         });
@@ -558,10 +553,6 @@
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
 
-            const pointLight = new THREE.PointLight(0x00ffff, 2, 40);
-            pointLight.position.set(0, 5, 0);
-            scene.add(pointLight);
-
             const gridColor = currentStage === 2 ? 0xff5500 : (currentStage === 3 ? 0x00ff88 : 0xff0055);
             const gridHelper = new THREE.GridHelper(300, 60, gridColor, 0x00ffff);
             scene.add(gridHelper);
@@ -626,6 +617,7 @@
                 });
 
                 window.addEventListener('mousedown', (e) => {
+                    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
                     isDragging = true;
                     previousMousePosition = { x: e.clientX, y: e.clientY };
                 });
@@ -641,13 +633,12 @@
                 });
                 window.addEventListener('mouseup', () => { isDragging = false; });
 
-                document.getElementById('btn-left').addEventListener('touchstart', () => keys.a = true);
-                document.getElementById('btn-left').addEventListener('touchend', () => keys.a = false);
-                document.getElementById('btn-right').addEventListener('touchstart', () => keys.d = true);
-                document.getElementById('btn-right').addEventListener('touchend', () => keys.d = false);
+                document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); keys.a = true; });
+                document.getElementById('btn-left').addEventListener('touchend', (e) => { e.preventDefault(); keys.a = false; });
+                document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); keys.d = true; });
+                document.getElementById('btn-right').addEventListener('touchend', (e) => { e.preventDefault(); keys.d = false; });
                 document.getElementById('btn-action').addEventListener('touchstart', (e) => { e.preventDefault(); triggerAttack(); });
 
-                // 定期的にプレイヤーステータスを同期（5秒おき）
                 setInterval(updatePlayerStatusToFirebase, 5000);
 
                 animate();
