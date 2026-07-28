@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON CHRONICLE - プレイヤー情報同期版</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+        }
+        .screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 5, 16, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #00ffff;
+            z-index: 100;
+        }
+        .screen-overlay h1 {
+            font-size: 36px;
+            text-shadow: 0 0 15px #00ffff;
+            margin-bottom: 20px;
+        }
+        .input-box {
+            background: #111122;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            padding: 10px 15px;
+            font-size: 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        select.input-box {
+            cursor: pointer;
+        }
+        .action-btn {
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            border-radius: 5px;
+            transition: 0.2s;
+        }
+        .action-btn:hover {
+            background: #00ffff;
+            color: #050510;
+            box-shadow: 0 0 15px #00ffff;
+        }
+        .admin-btn {
+            border-color: #ff0055;
+            color: #ff0055;
+            background: rgba(255, 0, 85, 0.2);
+        }
+        .admin-btn:hover {
+            background: #ff0055;
+            color: #fff;
+            box-shadow: 0 0 15px #ff0055;
+        }
+
+        #game-ui { display: none; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            pointer-events: none;
+        }
+        #score-board {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #ff0055;
+            font-size: 18px;
+            text-shadow: 0 0 10px #ff0055;
+            text-align: right;
+            pointer-events: none;
+        }
+        #stage-indicator {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            color: #00ffaa;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00ffaa;
+            text-align: right;
+            pointer-events: none;
+        }
+        #event-banner {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff0055;
+            font-size: 26px;
+            font-weight: bold;
+            text-shadow: 0 0 20px #ff0055;
+            display: none;
+            text-align: center;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .touch-btn {
+            position: absolute;
+            bottom: 30px;
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            color: #00ffff;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        #btn-left { left: 20px; }
+        #btn-right { left: 100px; }
+        #btn-action { right: 30px; bottom: 40px; width: 90px; height: 90px; background: rgba(255, 0, 85, 0.3); border-color: #ff0055; color: #ff0055; font-weight: bold; }
+
+        #admin-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 10, 30, 0.98);
+            border: 2px solid #ff0055;
+            padding: 25px;
+            border-radius: 10px;
+            width: 560px;
+            color: #fff;
+            display: none;
+            z-index: 50;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        #admin-panel h2 { color: #ff0055; margin-top: 0; text-shadow: 0 0 10px #ff0055; font-size: 22px; }
+        .admin-section {
+            background: rgba(20, 20, 45, 0.8);
+            border: 1px solid #00ffff;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .admin-section h3 { margin: 0 0 8px 0; font-size: 14px; color: #00ffff; }
+        .admin-row { margin: 8px 0; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        
+        .player-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+        .player-list-table th, .player-list-table td {
+            border: 1px solid #00ffff55;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        .player-list-table th {
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+        }
+
+        #gameover-screen, #clear-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(40, 0, 10, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ff0055;
+            z-index: 200;
+        }
+        #clear-screen { background: rgba(0, 20, 40, 0.9); color: #00ffff; }
+    </style>
+</head>
+<body>
+
+    <!-- ログイン画面 -->
+    <div id="login-screen" class="screen-overlay">
+        <h1>NEON CHRONICLE</h1>
+        <p>サイバー近未来 3DサバイバルRPG (プレイヤー情報同期版)</p>
+        <input type="text" id="player-name-input" class="input-box" style="width: 250px; text-align: center;" placeholder="プレイヤー名" value="プレイヤー1">
+        <br>
+        <button class="action-btn" onclick="startPlayerGame()">ゲームスタート</button>
+        <br><br>
+        <p style="font-size: 14px; color: #888;">管理者の方はこちら</p>
+        <input type="password" id="admin-pass-input" class="input-box" style="width: 250px; text-align: center;" placeholder="管理パスワード (Haya1012)">
+        <br>
+        <button class="action-btn admin-btn" onclick="loginAdmin()">管理者画面へログイン</button>
+    </div>
+
+    <!-- 管理者画面 -->
+    <div id="admin-panel">
+        <h2>⚡ ADMIN CONTROL PANEL</h2>
+        
+        <!-- プレイヤー情報確認セクション -->
+        <div class="admin-section">
+            <h3>👥 接続中プレイヤー一覧</h3>
+            <div style="max-height: 140px; overflow-y: auto;">
+                <table class="player-list-table">
+                    <thead>
+                        <tr>
+                            <th>プレイヤー名</th>
+                            <th>HP</th>
+                            <th>ステージ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-player-tbody">
+                        <tr><td colspan="3" style="text-align: center; color: #888;">データ読み込み中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3>📅 イベントスケジュール設定</h3>
+            <div class="admin-row" style="flex-direction: column; align-items: flex-start;">
+                <span>魔王出現日時:</span>
+                <input type="datetime-local" id="event-datetime-input" class="input-box" style="margin-top: 5px;" onchange="adminUpdateEventTime()">
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3>🏗️ マップエディタ＆生成（全端末同期）</h3>
+            <div class="admin-row">
+                <span>オブジェクトの種類:</span>
+                <select id="map-type-select" class="input-box" style="width: 220px;">
+                    <option value="tower">サイバータワー (高層ビル)</option>
+                    <option value="barrier">シールドバリア (低壁)</option>
+                    <option value="gate">ネオンゲート (アーチ)</option>
+                </select>
+            </div>
+            <div class="admin-row">
+                <span>生成パターン:</span>
+                <select id="map-mode-select" class="input-box" style="width: 220px;">
+                    <option value="random">エリア全体にランダム配置</option>
+                    <option value="front">プレイヤーの正面に連続配置</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="action-btn" style="flex: 1; padding: 10px; font-size: 14px; margin:0;" onclick="adminGenerateMap()">🛠️ マップ生成実行</button>
+                <button class="action-btn admin-btn" style="flex: 1; padding: 10px; font-size: 14px; margin:0;" onclick="adminClearMap()">🗑️ 全削除</button>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h3>📊 サーバー情報</h3>
+            <div class="admin-row">
+                <span>現在のステージ:</span>
+                <span id="admin-stage-display" style="color: #00ffaa;">STAGE 1</span>
+            </div>
+            <div class="admin-row">
+                <span>同期オブジェクト数:</span>
+                <span id="admin-obstacle-count" style="color: #00ffff;">0個</span>
+            </div>
+        </div>
+
+        <button class="action-btn" style="width: 100%; margin-top: 10px;" onclick="closeAdminPanel()">ゲームに戻る / 開始</button>
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="gameover-screen">
+        <h1 style="font-size: 50px; text-shadow: 0 0 20px #ff0055;">GAME OVER</h1>
+        <p style="color: #fff;">サイバー空間の戦いに敗れました...</p>
+        <button class="action-btn admin-btn" onclick="location.reload()">もう一度プレイする</button>
+    </div>
+
+    <!-- ステージクリア画面 -->
+    <div id="clear-screen">
+        <h1 id="clear-title" style="font-size: 45px; text-shadow: 0 0 20px #00ffff;">STAGE CLEAR!</h1>
+        <p id="clear-message" style="color: #fff; text-align: center; margin-bottom: 20px;">次のステージへ進みます...</p>
+        <button id="next-stage-btn" class="action-btn" onclick="proceedToNextStage()">次のステージへ進む ➔</button>
+    </div>
+
+    <!-- ゲーム画面UI -->
+    <div id="game-ui">
+        <div id="ui">
+            <h2 id="display-name" style="margin:0 0 5px 0; color:#00ffff;">PLAYER</h2>
+            <p>移動: [W/A/S/D] 視点: [マウスドラッグでカメラ回転]</p>
+            <p>攻撃: [SPACE] または右下ボタン（剣で敵や魔王を斬る）</p>
+            <button class="action-btn" style="padding: 5px 10px; font-size: 12px; margin-top: 5px;" onclick="openAdminPanel()">⚙ 管理画面を開く</button>
+        </div>
+
+        <div id="score-board">
+            <div id="hp-display">HP: 100</div>
+            <div id="boss-hp-display" style="display:none; color: #ff0055;">魔王HP: 100 / 100</div>
+            <div id="timer-display">イベントまで: 計算中...</div>
+        </div>
+        <div id="stage-indicator">STAGE 1</div>
+
+        <div id="event-banner">⚠️ 警告: 魔王降臨！接近してプラズマソードで斬り倒せ！ ⚠️</div>
+
+        <div class="touch-btn" id="btn-left">◀</div>
+        <div class="touch-btn" id="btn-right">▶</div>
+        <div class="touch-btn" id="btn-action">斬撃!</div>
+    </div>
+
+    <!-- Firebase SDK (Compat v9) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYnTwHAsQxXmUZb0Z0mC7k_SzGrgzYr_I",
+            authDomain: "bennkyou-30d98.firebaseapp.com",
+            projectId: "bennkyou-30d98",
+            storageBucket: "bennkyou-30d98.firebasestorage.app",
+            messagingSenderId: "402042244663",
+            appId: "1:402042244663:web:b50487896926358d39f9b2"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let scene, camera, renderer;
+        let playerGroup, sword;
+        let enemies = [];
+        let obstacles = [];
+        let bossMesh;
+        let bossBullets = [];
+        
+        let keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
+        let moveSpeed = 0.16;
+        let cameraAngleX = 0; 
+        let cameraAngleY = 0.5; 
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        let isAttacking = false;
+        let attackAnimTimer = 0;
+        let playerHp = 100;
+        let bossHp = 100;
+        let isGameOver = false;
+        let isStageClearing = false;
+        
+        let currentStage = 1;
+        const maxStage = 3;
+        let targetEventTime = new Date().getTime() + 15000;
+        let isEventActive = false;
+        let gameStarted = false;
+        let bossShootTimer = 0;
+
+        // プレイヤー固有ID（セッションごと）
+        const playerId = 'player_' + Math.random().toString(36.substring(2, 9));
+        let playerName = "プレイヤー1";
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const defaultDate = new Date(targetEventTime);
+            const pad = (n) => n.toString().padStart(2, '0');
+            const formatted = `${defaultDate.getFullYear()}-${pad(defaultDate.getMonth()+1)}-${pad(defaultDate.getDate())}T${pad(defaultDate.getHours())}:${pad(defaultDate.getMinutes())}`;
+            document.getElementById('event-datetime-input').value = formatted;
+
+            initFirebaseListeners();
+        });
+
+        function initFirebaseListeners() {
+            db.ref('game/eventTime').on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    targetEventTime = val;
+                    const d = new Date(val);
+                    const pad = (n) => n.toString().padStart(2, '0');
+                    document.getElementById('event-datetime-input').value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                }
+            });
+
+            db.ref('game/obstacles').on('value', (snapshot) => {
+                syncObstacles(snapshot.val());
+            });
+
+            // 接続中プレイヤー一覧の同期監視
+            db.ref('game/players').on('value', (snapshot) => {
+                const playersData = snapshot.val();
+                const tbody = document.getElementById('admin-player-tbody');
+                tbody.innerHTML = '';
+
+                if (!playersData) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #888;">接続中のプレイヤーはいません</td></tr>';
+                    return;
+                }
+
+                Object.keys(playersData).forEach(id => {
+                    const p = playersData[id];
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${p.name || '名無し'}</td>
+                        <td style="color: ${p.hp > 30 ? '#00ffaa' : '#ff0055'};">${Math.round(p.hp)} / 100</td>
+                        <td>Stage ${p.stage || 1}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        // 自分のプレイヤーステータスをFirebaseに定期送信
+        function updatePlayerStatusToFirebase() {
+            if (!gameStarted) return;
+            db.ref(`game/players/${playerId}`).set({
+                name: playerName,
+                hp: playerHp,
+                stage: currentStage,
+                lastActive: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+
+        // ページを離れたらプレイヤー情報を削除
+        window.addEventListener('beforeunload', () => {
+            db.ref(`game/players/${playerId}`).remove();
+        });
+
+        function adminUpdateEventTime() {
+            const dateVal = document.getElementById('event-datetime-input').value;
+            if (dateVal) {
+                db.ref('game/eventTime').set(new Date(dateVal).getTime());
+            }
+        }
+
+        function adminGenerateMap() {
+            const type = document.getElementById('map-type-select').value;
+            const mode = document.getElementById('map-mode-select').value;
+            let newObsList = [...obstacles.map(o => ({ type: o.userData.type, x: o.position.x, z: o.position.z, h: o.position.y }))];
+
+            if (mode === 'random') {
+                for (let i = 0; i < 5; i++) {
+                    newObsList.push({ type: type, x: (Math.random() - 0.5) * 120, z: (Math.random() - 0.5) * 120, h: type === 'tower' ? 7.5 : (type === 'barrier' ? 1.25 : 3) });
+                }
+            } else {
+                const h = type === 'tower' ? 7.5 : (type === 'barrier' ? 1.25 : 3);
+                const px = playerGroup ? playerGroup.position.x + Math.sin(cameraAngleX) * 8 : 0;
+                const pz = playerGroup ? playerGroup.position.z + Math.cos(cameraAngleX) * 8 : -8;
+                newObsList.push({ type: type, x: px, z: pz, h: h });
+            }
+
+            db.ref('game/obstacles').set(newObsList);
+            alert("マップを更新し、全端末に同期しました！");
+        }
+
+        function adminClearMap() {
+            if (confirm("配置したすべての障害物を削除しますか？")) {
+                db.ref('game/obstacles').set(null);
+            }
+        }
+
+        function syncObstacles(data) {
+            obstacles.forEach(obs => scene && scene.remove(obs));
+            obstacles = [];
+            if (!data || !scene) {
+                updateAdminStats();
+                return;
+            }
+
+            data.forEach(item => {
+                let geo, mat;
+                if (item.type === 'tower') {
+                    geo = new THREE.BoxGeometry(6, 15, 6);
+                    mat = new THREE.MeshStandardMaterial({ color: 0x00ffaa, roughness: 0.2, metalness: 0.8 });
+                } else if (item.type === 'barrier') {
+                    geo = new THREE.BoxGeometry(8, 2.5, 1.5);
+                    mat = new THREE.MeshStandardMaterial({ color: 0x00aaff, roughness: 0.4, metalness: 0.6 });
+                } else {
+                    geo = new THREE.BoxGeometry(10, 6, 2);
+                    mat = new THREE.MeshStandardMaterial({ color: 0xff00aa, roughness: 0.3, metalness: 0.7 });
+                }
+                const obj = new THREE.Mesh(geo, mat);
+                obj.position.set(item.x, item.h, item.z);
+                obj.userData = { type: item.type };
+                scene.add(obj);
+                obstacles.push(obj);
+            });
+            updateAdminStats();
+        }
+
+        function startPlayerGame() {
+            playerName = document.getElementById('player-name-input').value || "プレイヤー";
+            document.getElementById('display-name').innerText = playerName;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+            initGame();
+        }
+
+        function loginAdmin() {
+            const pass = document.getElementById('admin-pass-input').value;
+            if (pass === "Haya1012") {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                updateAdminStats();
+            } else {
+                alert("パスワードが違います（Haya1012）");
+            }
+        }
+
+        function openAdminPanel() {
+            document.getElementById('admin-panel').style.display = 'block';
+            updateAdminStats();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('admin-panel').style.display = 'none';
+            adminUpdateEventTime();
+            if (!gameStarted) {
+                document.getElementById('game-ui').style.display = 'block';
+                initGame();
+            }
+        }
+
+        function updateAdminStats() {
+            document.getElementById('admin-obstacle-count').innerText = obstacles.length + "個";
+            document.getElementById('admin-stage-display').innerText = `STAGE ${currentStage}`;
+        }
+
+        function initGame() {
+            if (gameStarted && !scene) return;
+            gameStarted = true;
+
+            scene = new THREE.Scene();
+
+            if (currentStage === 1) {
+                scene.background = new THREE.Color(0x0a0a1a);
+                scene.fog = new THREE.FogExp2(0x0a0a1a, 0.012);
+            } else if (currentStage === 2) {
+                scene.background = new THREE.Color(0x1a0a0a);
+                scene.fog = new THREE.FogExp2(0x1a0a0a, 0.012);
+            } else {
+                scene.background = new THREE.Color(0x0a1a1a);
+                scene.fog = new THREE.FogExp2(0x0a1a1a, 0.012);
+            }
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            if (!renderer) {
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+            }
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0x00ffff, 2, 40);
+            pointLight.position.set(0, 5, 0);
+            scene.add(pointLight);
+
+            const gridColor = currentStage === 2 ? 0xff5500 : (currentStage === 3 ? 0x00ff88 : 0xff0055);
+            const gridHelper = new THREE.GridHelper(300, 60, gridColor, 0x00ffff);
+            scene.add(gridHelper);
+
+            if (!playerGroup) {
+                playerGroup = new THREE.Group();
+                const bodyGeo = new THREE.BoxGeometry(1, 1.4, 0.6);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222244, roughness: 0.3, metalness: 0.8 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.position.y = 0.7;
+                playerGroup.add(body);
+
+                const visorGeo = new THREE.BoxGeometry(0.8, 0.25, 0.4);
+                const visorMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+                const visor = new THREE.Mesh(visorGeo, visorMat);
+                visor.position.set(0, 1.1, 0.2);
+                playerGroup.add(visor);
+
+                const swordGeo = new THREE.BoxGeometry(0.2, 1.4, 0.2);
+                const swordMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+                sword = new THREE.Mesh(swordGeo, swordMat);
+                sword.position.set(0.7, 0.7, 0.5);
+                playerGroup.add(sword);
+
+                scene.add(playerGroup);
+            }
+            playerGroup.position.set(0, 0, 0);
+            cameraAngleX = 0;
+
+            db.ref('game/obstacles').once('value').then((snapshot) => {
+                syncObstacles(snapshot.val());
+            });
+
+            spawnEnemies();
+
+            const bossGeo = new THREE.BoxGeometry(6, 10, 4);
+            const bossMat = new THREE.MeshBasicMaterial({ color: currentStage === 2 ? 0xff5500 : (currentStage === 3 ? 0x00ffcc : 0xff00aa), wireframe: true });
+            bossMesh = new THREE.Mesh(bossGeo, bossMat);
+            bossMesh.position.set(0, 5, -12);
+            bossMesh.visible = false;
+            scene.add(bossMesh);
+
+            bossHp = 80 + (currentStage * 20);
+            isEventActive = false;
+            bossBullets = [];
+            bossShootTimer = 0;
+
+            document.getElementById('stage-indicator').innerText = `STAGE ${currentStage}`;
+            document.getElementById('event-banner').style.display = 'none';
+            document.getElementById('boss-hp-display').style.display = 'none';
+
+            updatePlayerStatusToFirebase();
+
+            if (!window.hasInitializedEvents) {
+                window.hasInitializedEvents = true;
+                window.addEventListener('keydown', (e) => { 
+                    if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+                    if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); triggerAttack(); }
+                });
+                window.addEventListener('keyup', (e) => { 
+                    if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+                });
+
+                window.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                });
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+
+                    cameraAngleX -= deltaX * 0.005;
+                    cameraAngleY = Math.max(0.1, Math.min(1.4, cameraAngleY - deltaY * 0.005));
+
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                });
+                window.addEventListener('mouseup', () => { isDragging = false; });
+
+                document.getElementById('btn-left').addEventListener('touchstart', () => keys.a = true);
+                document.getElementById('btn-left').addEventListener('touchend', () => keys.a = false);
+                document.getElementById('btn-right').addEventListener('touchstart', () => keys.d = true);
+                document.getElementById('btn-right').addEventListener('touchend', () => keys.d = false);
+                document.getElementById('btn-action').addEventListener('touchstart', (e) => { e.preventDefault(); triggerAttack(); });
+
+                // 定期的にプレイヤーステータスを同期（5秒おき）
+                setInterval(updatePlayerStatusToFirebase, 5000);
+
+                animate();
+            }
+        }
+
+        function spawnEnemies() {
+            enemies.forEach(e => scene.remove(e));
+            enemies = [];
+            const enemyGeo = new THREE.SphereGeometry(0.8, 16, 16);
+            const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0xff0055, emissiveIntensity: 0.9 });
+            const enemyCount = 4 + currentStage * 2;
+            
+            for(let i = 0; i < enemyCount; i++) {
+                const enemy = new THREE.Mesh(enemyGeo, enemyMat.clone());
+                enemy.position.set((Math.random() - 0.5) * 80, 1.5, (Math.random() - 0.5) * 80);
+                enemy.userData = { speed: 0.04 + (currentStage * 0.01) + Math.random() * 0.02, alive: true };
+                scene.add(enemy);
+                enemies.push(enemy);
+            }
+        }
+
+        function triggerAttack() {
+            if (isAttacking || isGameOver || isStageClearing) return;
+            isAttacking = true;
+            attackAnimTimer = 12;
+
+            enemies.forEach(enemy => {
+                if (!enemy.userData.alive) return;
+                const dist = playerGroup.position.distanceTo(enemy.position);
+                if (dist < 5.0) {
+                    scene.remove(enemy);
+                    enemy.userData.alive = false;
+                }
+            });
+
+            if (isEventActive && bossMesh && bossMesh.visible) {
+                const bossDist = playerGroup.position.distanceTo(bossMesh.position);
+                if (bossDist < 7.0) {
+                    bossHp -= 10;
+                    document.getElementById('boss-hp-display').innerText = `魔王HP: ${Math.max(0, bossHp)}`;
+                    
+                    bossMesh.material.color.setHex(0xffffff);
+                    setTimeout(() => { if(bossMesh) bossMesh.material.color.setHex(0xff00aa); }, 150);
+
+                    if (bossHp <= 0) {
+                        isStageClearing = true;
+                        scene.remove(bossMesh);
+                        
+                        if (currentStage < maxStage) {
+                            document.getElementById('clear-title').innerText = `STAGE ${currentStage} CLEAR!`;
+                            document.getElementById('clear-message').innerText = `お見事！STAGE ${currentStage} の魔王を撃破しました！`;
+                            document.getElementById('next-stage-btn').innerText = `STAGE ${currentStage + 1} へ進む ➔`;
+                        } else {
+                            document.getElementById('clear-title').innerText = `ALL CLEAR! 🏆`;
+                            document.getElementById('clear-message').innerText = `全ステージの魔王を撃破し、サイバー世界に完全な平和が訪れた！`;
+                            document.getElementById('next-stage-btn').style.display = 'none';
+                        }
+                        document.getElementById('clear-screen').style.display = 'flex';
+                        updatePlayerStatusToFirebase();
+                    }
+                }
+            }
+        }
+
+        function proceedToNextStage() {
+            if (currentStage < maxStage) {
+                currentStage++;
+                document.getElementById('clear-screen').style.display = 'none';
+                isStageClearing = false;
+                initGame();
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isGameOver || isStageClearing) return;
+
+            const now = new Date().getTime();
+            const diffSec = Math.ceil((targetEventTime - now) / 1000);
+
+            if (!isEventActive) {
+                if (diffSec > 0) {
+                    document.getElementById('timer-display').innerText = `イベントまで: ${diffSec}秒`;
+                } else {
+                    isEventActive = true;
+                    if (bossMesh) bossMesh.visible = true; 
+                    document.getElementById('boss-hp-display').style.display = 'block';
+                    document.getElementById('event-banner').style.display = 'block';
+                }
+            } else {
+                document.getElementById('timer-display').innerText = "🚨 魔王戦 発生中！";
+                if (bossMesh) {
+                    bossMesh.rotation.y += 0.02;
+
+                    bossShootTimer++;
+                    const shootInterval = Math.max(25, 55 - (currentStage * 10));
+                    if (bossShootTimer % shootInterval === 0) {
+                        const bulletGeo = new THREE.SphereGeometry(0.4, 8, 8);
+                        const bulletMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                        const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+                        bullet.position.copy(bossMesh.position);
+
+                        const dir = new THREE.Vector3().subVectors(playerGroup.position, bossMesh.position).normalize();
+                        bullet.userData = { velocity: dir.multiplyScalar(0.32 + currentStage * 0.05) };
+
+                        scene.add(bullet);
+                        bossBullets.push(bullet);
+                    }
+                }
+            }
+
+            for (let i = bossBullets.length - 1; i >= 0; i--) {
+                const b = bossBullets[i];
+                b.position.add(b.userData.velocity);
+
+                if (b.position.distanceTo(playerGroup.position) < 1.5) {
+                    playerHp -= (10 + currentStage * 3);
+                    scene.remove(b);
+                    bossBullets.splice(i, 1);
+
+                    const currentHp = Math.max(0, Math.floor(playerHp));
+                    document.getElementById('hp-display').innerText = `HP: ${currentHp}`;
+                    updatePlayerStatusToFirebase();
+
+                    if (currentHp <= 0 && !isGameOver) {
+                        isGameOver = true;
+                        db.ref(`game/players/${playerId}`).update({ hp: 0 });
+                        document.getElementById('gameover-screen').style.display = 'flex';
+                    }
+                    continue;
+                }
+
+                if (b.position.distanceTo(bossMesh.position) > 150) {
+                    scene.remove(b);
+                    bossBullets.splice(i, 1);
+                }
+            }
+
+            if (keys.w || keys.ArrowUp) {
+                playerGroup.position.x += Math.sin(cameraAngleX) * moveSpeed;
+                playerGroup.position.z += Math.cos(cameraAngleX) * moveSpeed;
+            }
+            if (keys.s || keys.ArrowDown) {
+                playerGroup.position.x -= Math.sin(cameraAngleX) * moveSpeed * 0.5;
+                playerGroup.position.z -= Math.cos(cameraAngleX) * moveSpeed * 0.5;
+            }
+            if (keys.a || keys.ArrowLeft) cameraAngleX += 0.04;
+            if (keys.d || keys.ArrowRight) cameraAngleX -= 0.04;
+
+            playerGroup.rotation.y = cameraAngleX;
+
+            if (isAttacking) {
+                attackAnimTimer--;
+                sword.rotation.z = 1.3;
+                sword.material.color.setHex(0xffffff);
+                if (attackAnimTimer <= 0) {
+                    isAttacking = false;
+                    sword.rotation.z = 0;
+                    sword.material.color.setHex(0x00ffff);
+                }
+            }
+
+            enemies.forEach(enemy => {
+                if (!enemy.userData.alive) return;
+                const dir = new THREE.Vector3().subVectors(playerGroup.position, enemy.position);
+                dir.y = 0;
+                dir.normalize();
+                enemy.position.addScaledVector(dir, enemy.userData.speed);
+
+                if (enemy.position.distanceTo(playerGroup.position) < 2.5) {
+                    playerHp -= 0.8; 
+                    const currentHp = Math.max(0, Math.floor(playerHp));
+                    document.getElementById('hp-display').innerText = `HP: ${currentHp}`;
+                    
+                    if (currentHp <= 0 && !isGameOver) {
+                        isGameOver = true;
+                        updatePlayerStatusToFirebase();
+                        document.getElementById('gameover-screen').style.display = 'flex';
+                    }
+                }
+            });
+
+            const camX = playerGroup.position.x - Math.sin(cameraAngleX) * (8 * Math.sin(cameraAngleY));
+            const camZ = playerGroup.position.z - Math.cos(cameraAngleX) * (8 * Math.sin(cameraAngleY));
+            const camY = playerGroup.position.y + (8 * Math.cos(cameraAngleY));
+
+            camera.position.set(camX, Math.max(1, camY), camZ);
+            camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1, playerGroup.position.z);
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            if (!camera) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
