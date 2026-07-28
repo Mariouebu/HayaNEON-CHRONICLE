@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON CHRONICLE - プレイヤー同期・移動改善版</title>
+    <title>NEON CHRONICLE - プレイヤー同期完全版</title>
     <style>
         body {
             margin: 0;
@@ -187,7 +187,7 @@
         }
         .player-list-table th, .player-list-table td {
             border: 1px solid #00ffff55;
-            padding: 5px;
+            padding: 6px;
             text-align: left;
         }
         .player-list-table th {
@@ -232,7 +232,7 @@
         
         <div class="admin-section">
             <h3>👥 接続中プレイヤー一覧</h3>
-            <div style="max-height: 120px; overflow-y: auto;">
+            <div style="max-height: 140px; overflow-y: auto;">
                 <table class="player-list-table">
                     <thead>
                         <tr>
@@ -378,6 +378,7 @@
         });
 
         function initFirebaseListeners() {
+            // イベント時間の監視
             db.ref('game/eventTime').on('value', (snapshot) => {
                 const val = snapshot.val();
                 if (val) {
@@ -388,10 +389,12 @@
                 }
             });
 
+            // 障害物の監視
             db.ref('game/obstacles').on('value', (snapshot) => {
                 syncObstacles(snapshot.val());
             });
 
+            // 接続中プレイヤー一覧のリアルタイム監視（全端末の変更を確実に反映）
             db.ref('game/players').on('value', (snapshot) => {
                 const playersData = snapshot.val();
                 const tbody = document.getElementById('admin-player-tbody');
@@ -402,21 +405,33 @@
                     return;
                 }
 
+                const now = new Date().getTime();
+                let activeCount = 0;
+
                 Object.keys(playersData).forEach(id => {
                     const p = playersData[id];
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${p.name || '名無し'}</td>
-                        <td style="color: ${p.hp > 30 ? '#00ffaa' : '#ff0055'};">${Math.round(p.hp)} / 100</td>
-                        <td>Stage ${p.stage || 1}</td>
-                    `;
-                    tbody.appendChild(tr);
+                    // 15秒以上更新がない古い接続データは除外表示（自動クリーンアップ）
+                    if (p.lastActive && (now - p.lastActive < 15000)) {
+                        activeCount++;
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${p.name || '名無し'} ${id === playerId ? '<span style="color:#00ffff;">(自分)</span>' : ''}</td>
+                            <td style="color: ${p.hp > 30 ? '#00ffaa' : '#ff0055'};">${Math.round(p.hp)} / 100</td>
+                            <td>Stage ${p.stage || 1}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
                 });
+
+                if (activeCount === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #888;">接続中のプレイヤーはいません</td></tr>';
+                }
             });
         }
 
         function updatePlayerStatusToFirebase() {
             if (!gameStarted) return;
+            // プレイヤーごとのステータスを即座に更新・維持
             db.ref(`game/players/${playerId}`).set({
                 name: playerName,
                 hp: playerHp,
@@ -425,6 +440,7 @@
             });
         }
 
+        // ページが閉じられたり移動したときにプレイヤーをリストから即削除
         window.addEventListener('beforeunload', () => {
             db.ref(`game/players/${playerId}`).remove();
         });
@@ -465,10 +481,7 @@
         function syncObstacles(data) {
             obstacles.forEach(obs => scene && scene.remove(obs));
             obstacles = [];
-            if (!data || !scene) {
-                updateAdminStats();
-                return;
-            }
+            if (!data || !scene) return;
 
             data.forEach(item => {
                 let geo, mat;
@@ -488,7 +501,6 @@
                 scene.add(obj);
                 obstacles.push(obj);
             });
-            updateAdminStats();
         }
 
         function startPlayerGame() {
@@ -504,7 +516,6 @@
             if (pass === "Haya1012") {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('admin-panel').style.display = 'block';
-                updateAdminStats();
             } else {
                 alert("パスワードが違います（Haya1012）");
             }
@@ -512,7 +523,6 @@
 
         function openAdminPanel() {
             document.getElementById('admin-panel').style.display = 'block';
-            updateAdminStats();
         }
 
         function closeAdminPanel() {
@@ -522,11 +532,6 @@
                 document.getElementById('game-ui').style.display = 'block';
                 initGame();
             }
-        }
-
-        function updateAdminStats() {
-            document.getElementById('admin-obstacle-count').innerText = obstacles.length + "個";
-            document.getElementById('admin-stage-display').innerText = `STAGE ${currentStage}`;
         }
 
         function initGame() {
@@ -607,6 +612,7 @@
             document.getElementById('event-banner').style.display = 'none';
             document.getElementById('boss-hp-display').style.display = 'none';
 
+            // ゲーム開始と同時にFirebaseへ即座に登録
             updatePlayerStatusToFirebase();
 
             if (!window.hasInitializedEvents) {
@@ -652,7 +658,8 @@
                 document.getElementById('btn-action').addEventListener('touchstart', (e) => { e.preventDefault(); triggerAttack(); });
                 document.getElementById('btn-action').addEventListener('mousedown', (e) => { e.preventDefault(); triggerAttack(); });
 
-                setInterval(updatePlayerStatusToFirebase, 3000);
+                // 2秒ごとにハートビート（生存確認）としてステータスをサーバーへ送信
+                setInterval(updatePlayerStatusToFirebase, 2000);
 
                 animate();
             }
